@@ -1,6 +1,3 @@
-# set working directory
-setwd("/Users/juliana.taxter/Downloads/NCDB Data")
-
 # read data from the synthetic NCDB file
 data <- readLines("NCDBPUF_Rectum_SYNTHETIC.dat")
 
