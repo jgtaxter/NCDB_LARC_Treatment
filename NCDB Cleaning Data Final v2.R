@@ -1,8 +1,8 @@
 # set working directory
 setwd("/Users/juliana.taxter/Downloads/NCDB Data")
 
-# read data from the NCDB file
-data <- readLines("NCDBPUF_Rectum.0.2023.0.dat")
+# read data from the synthetic NCDB file
+data <- readLines("NCDBPUF_Rectum_SYNTHETIC.dat")
 
 # find data labels and points
 lookup <- read.csv("NCDB PUF QuickStart Data Structure 2023.csv")
