@@ -43,8 +43,8 @@ pn <- pick(c("0", "1A", "1B", "1C", "2A", "2B"), c(.55, .15, .12, .03, .10, .05)
 
 # Node counts consistent with pN (N1c = tumor deposits, 0 positive nodes)
 pos  <- ifelse(pn %in% c("0", "1C"), 0L,
-               ifelse(pn == "1A", 1L,
-                      ifelse(pn == "1B", pick(2:3), pick(4:10))))
+        ifelse(pn == "1A", 1L,
+        ifelse(pn == "1B", pick(2:3), pick(4:10))))
 exam <- pmax(pos, pick(6:30))
 
 # Treatment
@@ -52,6 +52,11 @@ neo       <- pick(c(TRUE, FALSE), c(.40, .60))   # some neoadjuvant (should be e
 got_chemo <- pick(c(TRUE, FALSE), c(.55, .45))
 got_rad   <- pick(c(TRUE, FALSE), c(.35, .65))
 got_imm   <- pick(c(TRUE, FALSE), c(.04, .96))
+
+# Timing (days from diagnosis): surgery first, adjuvant therapy 4-16 weeks later
+surg_day  <- pick(10:60)
+chemo_day <- surg_day + pick(28:110)
+rad_day   <- surg_day + pick(35:115)
 
 # Survival
 months <- pmin(rexp(n, 1 / 70), 180)
@@ -68,13 +73,13 @@ fields <- list(
   PUF_30_DAY_MORT_CD    = pick(c("0", "1", "9"), c(.95, .03, .02)),
   REASON_FOR_NO_SURGERY = pick(c("0", "1"), c(.95, .05)),
   RX_SUMM_SURG_PRIM_SITE      = blank_if(year == 2023,
-                                         pick(c("27", "30", "40", "50", "60", "70", "80"),
-                                              c(.15, .45, .08, .20, .04, .04, .04))),
+                                  pick(c("27", "30", "40", "50", "60", "70", "80"),
+                                       c(.15, .45, .08, .20, .04, .04, .04))),
   RX_SUMM_SURG_PRIM_SITE_2023 = blank_if(year != 2023,
-                                         pick(c("A270", "A300", "A400", "A500"),
-                                              c(.15, .55, .10, .20))),
+                                  pick(c("A270", "A300", "A400", "A500"),
+                                       c(.15, .55, .10, .20))),
   RX_SUMM_SURG_OTH_REGDIS     = ifelse(cm == "1", pick(c("0", "4")), "0"),
-  
+
   # TNM: old fields right-justified with c/p prefix, AJCC 8 left-justified
   TNM_CLIN_T      = blank_if(new_tnm, paste0("c", ct)),
   TNM_CLIN_N      = blank_if(new_tnm, paste0("c", cn)),
@@ -89,9 +94,9 @@ fields <- list(
   AJCC_TNM_PATH_N = blank_if(!new_tnm, paste0("pN", tolower(pn))),
   AJCC_TNM_PATH_M = blank_if(!new_tnm, "88"),
   ANALYTIC_STAGE_GROUP = ifelse(cm == "1", "4",
-                                ifelse(pn != "0", "3",
-                                       ifelse(pt %in% c("3", "4A", "4B"), "2", "1"))),
-  
+                         ifelse(pn != "0", "3",
+                         ifelse(pt %in% c("3", "4A", "4B"), "2", "1"))),
+
   # Metastases (M1 patients get liver mets)
   METS_AT_DX_BONE       = blank_if(!site_era, "0"),
   METS_AT_DX_BRAIN      = blank_if(!site_era, "0"),
@@ -106,20 +111,29 @@ fields <- list(
   CS_METS_DX_LUNG       = blank_if(!cs_site, "0"),
   CS_METS_DX_OTHER      = blank_if(!cs_site, "0"),
   CS_METS_AT_DX         = blank_if(!cs_era, ifelse(cm == "1", "40", "00")),
-  
+
   REGIONAL_NODES_POSITIVE = sprintf("%02d", pos),
   REGIONAL_NODES_EXAMINED = sprintf("%02d", exam),
-  
+
   # Treatment sequence: 0 = none, 2 = before surgery, 3 = after surgery
   RX_SUMM_SYSTEMIC_SUR_SEQ = ifelse(got_chemo | got_imm, ifelse(neo, "2", "3"), "0"),
   RX_SUMM_SURGRAD_SEQ      = ifelse(got_rad, ifelse(neo, "2", "3"), "0"),
   RX_SUMM_CHEMO            = ifelse(got_chemo, pick(c("01", "02", "03")),
                                     pick(c("00", "82", "87", "99"), c(.85, .05, .05, .05))),
   RX_SUMM_IMMUNOTHERAPY    = ifelse(got_imm, "01", "00"),
-  DX_CHEMO_STARTED_DAYS    = ifelse(got_chemo, as.character(pick(30:120)), ""),
-  DX_RAD_STARTED_DAYS      = ifelse(got_rad,   as.character(pick(40:150)), ""),
-  DX_IMMUNO_STARTED_DAYS   = ifelse(got_imm,   as.character(pick(30:120)), ""),
-  
+  DX_DEFSURG_STARTED_DAYS  = as.character(surg_day),
+  DX_RX_STARTED_DAYS       = as.character(surg_day),
+  DX_CHEMO_STARTED_DAYS    = ifelse(got_chemo, as.character(chemo_day), ""),
+  DX_RAD_STARTED_DAYS      = ifelse(got_rad,   as.character(rad_day), ""),
+  DX_IMMUNO_STARTED_DAYS   = ifelse(got_imm,   as.character(chemo_day), ""),
+  SURG_DISCHARGE_DAYS      = as.character(pick(2:12)),
+  INSURANCE_STATUS         = pick(c("0", "1", "2", "3", "4", "9"), c(.03, .45, .08, .38, .03, .03)),
+  RACE                     = pick(c("01", "02", "03", "98", "99"), c(.80, .10, .02, .05, .03)),
+  FACILITY_TYPE_CD         = pick(c("1", "2", "3", "4"), c(.10, .35, .35, .20)),
+  MED_INC_QUAR_2016        = pick(c("1", "2", "3", "4")),
+  GRADE                    = pick(c("1", "2", "3", "9"), c(.10, .70, .15, .05)),
+  RX_SUMM_SURGICAL_MARGINS = pick(c("0", "1", "2", "9"), c(.88, .02, .06, .04)),
+
   DX_LASTCONTACT_DEATH_MONTHS = sprintf("%.2f", months),
   PUF_VITAL_STATUS            = ifelse(dead, "0", "1")   # 0 = dead, 1 = alive
 )
